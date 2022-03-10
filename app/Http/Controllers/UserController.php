@@ -43,6 +43,7 @@ class UserController extends Controller
                     'required' => 'Please fill attribute :attribute'
                 ];
                 $this->validate($request, $rules, $customMessages);
+                
                 try {
                     $hasher = app()->make('hash');
                     $socialEmail = $request->input('socialEmail');
@@ -62,6 +63,7 @@ class UserController extends Controller
                     $utmContent = $request->input('utmContent');
                     $utmCampaign = $request->input('utmCampaign');
                     $refferalCode = $request->input('refferal_code') ? $request->input('refferal_code') : null;
+                    $fcmToken = $request->input('token') ? $request->input('token') : null;
 
                     if($refferalCode){
                         $refferData = User::select('USER_ID')->where('REFFER_CODE', $refferalCode)->first();
@@ -69,7 +71,6 @@ class UserController extends Controller
                     }else{
                         $refferId = null;
                     }
-
                     // $password = $hasher->make($request->input('password'));
                     $api_token = sha1($socialEmail . time());
                     $userCreate = User::create([
@@ -86,7 +87,8 @@ class UserController extends Controller
                         'ADVERTISING_ID' => $advertisingId,
                         'VERSION_NAME' => $versionName,
                         'VERSION_CODE' => $versionCode,
-                        'API_TOKEN' => $api_token
+                        'API_TOKEN' => $api_token,
+                        'FCM_TOKEN' => $fcmToken
                     ]);
                     if (!empty($userCreate->id)) {
 
