@@ -36,11 +36,11 @@ class AppOpen extends Controller
         $userId = $request->input('userId');
         $token  = $request->input('api_token');
 
-        $userBalance = DB::table('users')->join('user_wallet', 'users.USER_ID', '=', 'user_wallet.USER_ID')->select('users.USER_ID', 'users.REFFER_CODE', 'users.REFFER_ID', 'users.CREATED_AT', 'user_wallet.BALANCE as userCoin', 'user_wallet.PROMO_BALANCE as userPromoCoin',  'user_wallet.MAIN_BALANCE as userMainCoin')->where(['users.USER_ID' => $userId, 'user_wallet.COIN_TYPE' => 1])->first();
+        $userBalance = DB::table('users')->join('user_wallet', 'users.USER_ID', '=', 'user_wallet.USER_ID')->select('users.USER_ID', 'users.PHONE', 'users.REFFER_CODE', 'users.REFFER_ID', 'users.CREATED_AT', 'user_wallet.BALANCE as userCoin', 'user_wallet.PROMO_BALANCE as userPromoCoin',  'user_wallet.MAIN_BALANCE as userMainCoin')->where(['users.USER_ID' => $userId, 'user_wallet.COIN_TYPE' => 1])->first();
         $userDiamond = DB::table('user_wallet')->select('BALANCE as userDiamond')->where(['USER_ID' => $userId, 'COIN_TYPE' => 2])->first();
         /**check user consistence and credit bonus to both user and refferer */
         $popData = DB::table('headings')->select('HEADING', 'MESSAGE', 'THUMBNAIL', 'ACTION_URL', 'IS_BUTTON', 'STATUS')->where(['STATUS' => 1])->first();
-        $popArray = new stdClass();
+        $popArray = new \stdClass();
         $popUpVisibility = $popData ? 1 : 0;
         
         if($popData){
@@ -67,6 +67,7 @@ class AppOpen extends Controller
             $res['userDiamond'] = $userDiamond->userDiamond ?? 0;
             $res['popUp'] = $popUpVisibility;
             $res['popData'] = $popArray;
+            $res['profileCompletion'] =  $userBalance->PHONE ? true : false;    
             $res['type'] = 'app_open';
             return response($res, 200);
         } else {
