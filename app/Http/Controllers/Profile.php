@@ -11,6 +11,7 @@ class Profile extends Controller
 {
     public function update(Request $request)
     {
+        
         $rules = [
             'phone' => 'required|digits:10',
             'locale' => 'required',
@@ -24,11 +25,9 @@ class Profile extends Controller
             'required' => 'Please fill required :attribute'
         ];
 
-
-
         $this->validate($request, $rules, $customMessages);
+        
         $token = $request->input('api_token');
-
         $check_token = User::where('API_TOKEN', $token)->select('USER_ID')->first();
         
         $refferalIdExist = User::select('REFFER_ID')->where('USER_ID', $check_token->USER_ID)->first();
@@ -56,17 +55,19 @@ class Profile extends Controller
         $city = $request->input('city');
         $state = $request->input('state');
         $country = $request->input('country');
+        $location = $request->input('location');
         $profileUpdate = User::where('USER_ID', $check_token->USER_ID)->update([
             'PHONE' => $phone,
             'USER_LOCALE' => $locale,
             'USER_NAME' => $userName,
             'OCCUPATION' => $occupation,
-            'DOB' => $dob,
+            'DOB' => date("Y-m-d", strtotime($dob)),
             'PROFILE_PIC' => $profilePic,
             'GENDER' => $gender,
             'COUNTRY_CODE' => $country,
             'CITY' => $city,
             'STATE' => $state,
+            'LOCATION' => $location,
             'REFFER_ID' => $refferId,
             
         ]);
@@ -79,7 +80,7 @@ class Profile extends Controller
             $res['userName'] = $userData->USER_NAME;
             $res['eMail'] = $userData->SOCIAL_EMAIL;
             $res['gender'] = $userData->GENDER;
-            $res['location'] = $userData->STATE;
+            $res['location'] = $userData->LOCATION;
             $res['occupation'] = $userData->OCCUPATION;
             $res['dob'] = $userData->DOB;
             $res['profPic'] = $userData->PROFILE_PIC;
@@ -113,11 +114,12 @@ class Profile extends Controller
             $res['gender'] = $profileData->GENDER;
             $res['CITY'] = $profileData->CITY;
             $res['country'] = $profileData->COUNTRY_CODE;
-            $res['location'] = $profileData->STATE;
+            $res['location'] = $profileData->LOCATION;
             $res['occupation'] = $profileData->OCCUPATION;
             $res['dob'] = $profileData->DOB;
             $res['phone'] = $profileData->PHONE;
-            $res['profPic'] = $profileData->DOB;
+            $res['profPic'] = $profileData->PROFILE_PIC;
+            $res['state'] = $profileData->STATE;
             $res['type'] = 'profile_get';
             return response($res, 200);
         } else {
