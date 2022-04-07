@@ -36,7 +36,7 @@ class AppOpen extends Controller
         $userId = $request->input('userId');
         $token  = $request->input('api_token');
 
-        $userBalance = DB::table('users')->join('user_wallet', 'users.USER_ID', '=', 'user_wallet.USER_ID')->select('users.USER_ID', 'users.PHONE', 'users.REFFER_CODE', 'users.REFFER_ID', 'users.CREATED_AT', 'user_wallet.BALANCE as userCoin', 'user_wallet.PROMO_BALANCE as userPromoCoin',  'user_wallet.MAIN_BALANCE as userMainCoin')->where(['users.USER_ID' => $userId, 'user_wallet.COIN_TYPE' => 1])->first();
+        $userBalance = DB::table('users')->join('user_wallet', 'users.USER_ID', '=', 'user_wallet.USER_ID')->select('users.USER_ID', 'users.PHONE as PHONE', 'users.REFFER_CODE', 'users.REFFER_ID', 'users.CREATED_AT', 'user_wallet.BALANCE as userCoin', 'user_wallet.PROMO_BALANCE as userPromoCoin',  'user_wallet.MAIN_BALANCE as userMainCoin')->where(['users.USER_ID' => $userId, 'user_wallet.COIN_TYPE' => 1])->first();
         $userDiamond = DB::table('user_wallet')->select('BALANCE as userDiamond')->where(['USER_ID' => $userId, 'COIN_TYPE' => 2])->first();
         /**check user consistence and credit bonus to both user and refferer */
         $popData = DB::table('headings')->select('HEADING', 'MESSAGE', 'THUMBNAIL', 'ACTION_URL', 'IS_BUTTON', 'STATUS')->where(['STATUS' => 1])->first();
@@ -54,6 +54,7 @@ class AppOpen extends Controller
         }
         
         $this->creditBonusToReffererAndUser($userBalance);
+        $this->creditRetentionBonusToUser($userBalance);
 
         if ($userBalance) {
             $res['status'] = '200';
@@ -177,6 +178,55 @@ class AppOpen extends Controller
 
                 }
             }
+        }
+    }
+
+    public function creditRetentionBonusToUser($user)
+    {
+        /**check if retention bonus not availed */
+        $dateFrom = date("Y-m-d 00:00:00");
+        $dateTo = date("Y-m-d 23:59:59");
+
+        $retentionBonus = MasterTransactionHistory::select('*')->where(['TRANSACTION_TYPE_ID' => 13, 'TRANSACTION_STATUS_ID' => 1, 'USER_ID' => $user->USER_ID])->whereBetween('TRANSACTION_DATE', [$dateFrom, $dateTo])->first();
+        
+        if(empty($retentionBonus)){
+            $bonusAmount = env("RETENTION_BONUS");
+
+            $userBalance = $this->getUserBalance($user->USER_ID); /** get user's current balance */
+
+            date_default_timezone_set('Asia/Kolkata');
+            $currentDate = date('Y-m-d H:i:s');
+
+            $internalRefNo = "111" . $user->USER_ID;
+            $internalRefNo = $internalRefNo . mt_rand(100, 999);
+            $internalRefNo = $internalRefNo . $this->getDateTimeInMicroseconds();
+            $internalRefNo = $internalRefNo . mt_rand(100, 999);
+
+            $currentTotBalance = $userBalance->BALANCE;
+            $closingTotBalance = $currentTotBalance + $bonusAmount;
+
+            $transData = [
+                "USER_ID" => $user->USER_ID,
+                "BALANCE_TYPE_ID" => 1,
+                "TRANSACTION_STATUS_ID" => 1, /** for coins credited succesfully */
+                "TRANSACTION_TYPE_ID" => 13, /** for coins credited For SignUp Bonus */
+                "PAYOUT_COIN" => $bonusAmount,
+                "PAYOUT_EMIAL" => "",
+                "PAY_MODE" => "",
+                "INTERNAL_REFERENCE_NO" => $internalRefNo,
+                "PAYOUT_NUMBER" => "",
+                "CURRENT_TOT_BALANCE" => $currentTotBalance,
+                "CLOSING_TOT_BALANCE" => $closingTotBalance,
+                "TRANSACTION_DATE" => $currentDate
+            ];
+
+            $this->creditOrDebitCoinsToUser($transData);
+
+            $userNewBalance = $userBalance->BALANCE + $bonusAmount;
+            $userNewPromoBalance = $userBalance->PROMO_BALANCE + $bonusAmount;
+
+            $this->updateUserBalance($userNewBalance, $userNewPromoBalance, $user->USER_ID);
+
         }
     }
 }
