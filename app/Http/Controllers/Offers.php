@@ -27,7 +27,17 @@ class Offers extends Controller
         $allspecialOffersData = [];
         $allSaleOffersData = [];
         
-        $allOffers = DB::table('offer')->orderBy('OFFER_ID', 'desc')->where(['STATUS' => 1])->whereNotIn('OFFER_CATEGORY', [4,5])->limit($limit)->get();
+        $token = $request->api_token;
+
+        $myConvertedOffers = $this->myOffers($token);
+        $myConvertedOffers = $myConvertedOffers ?? [22222, 3742842];
+
+
+
+        $allOffers = DB::table('offer')->orderBy('OFFER_ID', 'desc')->where(['STATUS' => 1])->where(function($q) use ($myConvertedOffers) {
+            $q->whereNotIn('OFFER_ID', $myConvertedOffers);
+            $q->whereNotIn('OFFER_CATEGORY', [4,5]);
+        })->limit($limit)->get();
 
         if (!empty($allOffers)) {
             $statusData['status'] = '200';
@@ -52,7 +62,9 @@ class Offers extends Controller
             $allOffersData = "N\A";
         }
 
-        $hotOffers = DB::table('offer')->orderBy('OFFER_ID', 'desc')->where(['OFFER_DISPLAY_TYPE' => 3, 'STATUS' => 1])->limit($limit)->get();
+        $hotOffers = DB::table('offer')->orderBy('OFFER_ID', 'desc')->where(function($q) use ($myConvertedOffers) {
+            $q->whereNotIn('OFFER_ID', $myConvertedOffers);
+        })->where(['OFFER_DISPLAY_TYPE' => 3, 'STATUS' => 1])->limit($limit)->get();
        
         if(!empty($hotOffers)){
             foreach ($hotOffers as $hotOfferData) {
@@ -72,7 +84,9 @@ class Offers extends Controller
             $allHotOffersData = "N\A";
         }
 
-        $reccomemndedOffers = DB::table('offer')->orderBy('OFFER_ID', 'desc')->where(['OFFER_DISPLAY_TYPE' => 2, 'STATUS' => 1])->limit($limit)->get();
+        $reccomemndedOffers = DB::table('offer')->orderBy('OFFER_ID', 'desc')->where(function($q) use ($myConvertedOffers) {
+            $q->whereNotIn('OFFER_ID', $myConvertedOffers);
+        })->where(['OFFER_DISPLAY_TYPE' => 2, 'STATUS' => 1])->limit($limit)->get();
 
         if(!empty($reccomemndedOffers)){
             foreach ($reccomemndedOffers as $reccomemndedOfferData) {
@@ -92,7 +106,9 @@ class Offers extends Controller
             $allReccomemndedOffersData = "N\A";
         }
 
-        $specialOffers = DB::table('offer')->orderBy('OFFER_ID', 'desc')->where(['OFFER_DISPLAY_TYPE' => 4, 'STATUS' => 1])->limit($limit)->get();
+        $specialOffers = DB::table('offer')->orderBy('OFFER_ID', 'desc')->where(function($q) use ($myConvertedOffers) {
+            $q->whereNotIn('OFFER_ID', $myConvertedOffers);
+        })->where(['OFFER_DISPLAY_TYPE' => 4, 'STATUS' => 1])->limit($limit)->get();
 
         if(!empty($specialOffers)){
             foreach ($specialOffers as $specialOffersData) {
@@ -112,7 +128,9 @@ class Offers extends Controller
             $allspecialOffersData = "N\A";
         }
 
-        $saleOffers = DB::table('offer')->orderBy('OFFER_ID', 'desc')->where(['OFFER_DISPLAY_TYPE' => 6, 'STATUS' => 1])->whereIn('OFFER_CATEGORY', [4,5])->limit($limit)->get();
+        $saleOffers = DB::table('offer')->orderBy('OFFER_ID', 'desc')->where(function($q) use ($myConvertedOffers) {
+            $q->whereNotIn('OFFER_ID', $myConvertedOffers);
+        })->where(['OFFER_DISPLAY_TYPE' => 6, 'STATUS' => 1])->whereIn('OFFER_CATEGORY', [4,5])->limit($limit)->get();
 
         if(!empty($saleOffers)){
             foreach ($saleOffers as $saleOffersData) {
@@ -138,6 +156,54 @@ class Offers extends Controller
         $data = ['data' => $statusData, 'offers' => $allOffersData, 'hotOffers' => $allHotOffersData, 'reccomendedOffers' => $allReccomemndedOffersData, 'specialOffers' => $allspecialOffersData, 'saleOffers' => $allSaleOffersData];
         return response($data, 200);
     }
+
+    public function getMyOffer(Request $request)
+    {
+        $limit = $request->input('limit');
+
+        $allOffersData = [];
+
+        $token = $request->api_token;
+
+        $myConvertedOffers = $this->myOffers($token);
+        
+        if(count($myConvertedOffers)){
+            $allOffers = DB::table('offer')->orderBy('OFFER_ID', 'desc')->where('STATUS', 1)->whereIn('OFFER_ID', $myConvertedOffers)->limit($limit)->get();
+    
+            if (!empty($allOffers)) {
+                foreach ($allOffers as $allOfferData) {
+                    $res['offerId'] = $allOfferData->OFFER_ID;
+                    $res['offerAmount'] = $allOfferData->OFFER_AMOUNT;
+                    $res['offerName'] = $allOfferData->OFFER_NAME;
+                    $res['packageName'] = $allOfferData->OFFER_PACKAGE;
+                    $res['payoutType'] = $allOfferData->OFFER_NAME;
+                    $res['offerInstructions'] = $allOfferData->OFFER_INSTRUCTIONS;
+                    $res['offerThumbnail'] = env('THUMB_URL').$allOfferData->OFFER_THUMBNAIL;
+                    $res['offerBanner'] = env('BANNER_URL').$allOfferData->OFFER_BANNER;
+                    $res['offerUrl'] = $allOfferData->OFFER_URL;
+                    $res['fallbackUrl'] = $allOfferData->FALLBACK_URL;
+                    $allOffersData[] = $res;
+                }
+               
+            } else {
+                $allOffersData = [];
+            }
+            $statusData['status'] = '200';
+            $statusData['message'] = 'Success';
+            $statusData['type'] = 'get_all_offers';
+            $data = ['data' => $statusData, 'offers' => $allOffersData];
+            return response($data, 200);
+        }else{
+            $res['status'] = false;
+            $res['message'] = 'Failed';
+            $res['type'] = 'get_all_offers';
+            $data = ['data' => $res, 'offers' => $allOffersData];
+            return response($data, 402);
+        }
+
+        
+    }
+
     public function getOfferDetails(Request $request)
     {
         $rules = [
@@ -192,5 +258,15 @@ class Offers extends Controller
             ];
         }
         return $newSteps;
+    }
+
+    private function myOffers($token){
+
+        $userId = User::where('API_TOKEN', $token)->select('USER_ID')->first();
+        
+        $clickedOffers = DB::table('offer_clicks')->where('USER_ID', $userId->USER_ID)->pluck('OFFER_ID');
+
+        return $clickedOffers->toArray();
+
     }
 }
