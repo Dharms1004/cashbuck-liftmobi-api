@@ -24,6 +24,7 @@ $router->post('/profileUpdate', ['middleware' => 'auth', 'uses' =>  'Profile@upd
 $router->post('/getProfile', ['middleware' => 'auth', 'uses' =>  'Profile@getProfileInfo']);
 $router->post('/userAppOpen', ['middleware' => 'auth', 'uses' =>  'AppOpen@getUserAppOpen']);
 $router->post('/offerList', ['middleware' => 'auth', 'uses' =>  'Offers@getAllOffer']);
+$router->post('/myOfferList', ['middleware' => 'auth', 'uses' =>  'Offers@getMyOffer']);
 $router->post('/offerDetails', ['middleware' => 'auth', 'uses' =>  'Offers@getOfferDetails']);
 $router->post('/userTransactions', ['middleware' => 'auth', 'uses' =>  'UserTransaction@getUserTransaction']);
 $router->post('/walletData', ['middleware' => 'auth', 'uses' =>  'WalletData@getAllWalletData']);
